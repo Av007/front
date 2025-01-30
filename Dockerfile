@@ -1,15 +1,15 @@
 FROM node:23 as builder
 
-WORKDIR /frontend
+WORKDIR /app
 
-COPY /frontend/package*.json ./
+COPY /package*.json ./app
 
 RUN npm install
 
-COPY /frontend/ .
+COPY . /app
 
 RUN npm run build
 
-EXPOSE 3000
+EXPOSE 80
 
 CMD ["npx", "serve", "-s", "dist"]
