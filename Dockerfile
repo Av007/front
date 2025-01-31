@@ -10,6 +10,9 @@ RUN npm install
 
 COPY . /app
 
+ENV VITE_ENV=${STAGE}
+
+
 RUN npm run build
 
 EXPOSE 80
