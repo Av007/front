@@ -10,26 +10,54 @@ const Homepage = () => {
   const { token } = useAuth();
   const [username] = useState(localStorage.getItem("email"));
   const [data, setData] = useState([]);
-
-  const columns = [
-    { field: "id", headerName: "ID" },
-    { field: "name", headerName: "Name", width: 200 },
-    { field: "description", headerName: "description", width: 300 },
-    { field: "price", headerName: "price" },
-    { field: "stock", headerName: "stock" },
-  ];
-
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState(localStorage.getItem("query") || "");
   const [order, setOrder] = useState("");
-  const [filterModel, setFilterModel] = useState({
+  const [, setFilterModel] = useState({
     items: [],
     quickFilterValues: [],
   });
 
+  const columns = [
+    { field: "id", headerName: "ID" },
+    { field: "name", headerName: "Name", width: 200 },
+    { field: "description", headerName: "Description", width: 300 },
+    { field: "price", headerName: "Price" },
+    { field: "stock", headerName: "Stock" },
+  ];
+
+  const fetchResults = useCallback(
+    _.debounce((searchQuery, sortOrder) => {
+      console.log("Fetching API:", searchQuery, sortOrder);
+      axios
+        .get(`${import.meta.env.VITE_URL}api/products`, {
+          params: { search: searchQuery, ordering: sortOrder },
+          paramsSerializer: (params) =>
+            Object.keys(params)
+              .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+              .join("&"),
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+        .then((response) => {
+          const items =
+            response?.data?.reduce((acc, curr) => acc.concat(curr), []) || [];
+          
+          setFilterModel((prev) => ({ ...prev, items }));
+          setData(items);
+        })
+        .catch((error) => {
+          console.error("API Error:", error);
+        });
+    }, 500),
+    [token]
+  );
+
   useEffect(() => {
-    call();
-  }, [query, order]);
+    fetchResults(query, order);
+  }, [query, order, fetchResults]);
 
   useEffect(() => {
     if (query) {
@@ -37,79 +65,39 @@ const Homepage = () => {
     }
   }, [query]);
 
-  const call = () => {
-    _.debounce(async () => {
-      axios
-        .get(
-          `${import.meta.env.VITE_URL}api/products`,
-          {
-            params: {
-              search: query,
-              ordering: order,
-            },
-            paramsSerializer: (params) => {
-              let result = "";
-              Object.keys(params).forEach((key) => {
-                result += `${key}=${encodeURIComponent(params[key])}&`;
-              });
-              return result.substring(0, result.length - 1);
-            },
-          },
-          {
-            headers: {
-              Authorization: "Bearer " + token,
-              "Content-Type": "application/json",
-            },
-          }
-        )
-        .then((success) => {
-          const items =
-            success?.data?.reduce((acc, curr) => acc.concat(curr), []) || [];
-
-          setFilterModel({
-            ...filterModel,
-            items,
-          });
-          setData(items);
-        });
-    }, 700);
-  };
-
-  const onFilterChange = useCallback((filterModel) => {
-    const q = filterModel.quickFilterValues.join(" ");
+  const onFilterChange = useCallback((filterModelValue) => {
+    const q = filterModelValue.quickFilterValues.join(" ");
     setQuery(q);
   }, []);
 
   const handleSortModelChange = useCallback((sortModel) => {
-    const field = sortModel[0]["field"];
-    const sort = sortModel[0]["sort"];
-    const sign = {
-      asc: "",
-      desc: "-",
-    };
-    setOrder(sign[sort] + field);
+    if (sortModel.length > 0) {
+      const field = sortModel[0].field;
+      const sort = sortModel[0].sort;
+      setOrder(sort === "desc" ? `-${field}` : field);
+    } else {
+      setOrder("");
+    }
   }, []);
 
-  const rowSelected = (newRowSelectionModel) => {
-    newRowSelectionModel.map(async (item) => {
+  const rowSelected = async (newRowSelectionModel) => {
+    for (const item of newRowSelectionModel) {
       if (!selected.includes(item)) {
         setSelected(newRowSelectionModel);
         await axios.patch(
           `${import.meta.env.VITE_URL}api/product/${item}`,
-          {
-            id: item,
-            selected: 1,
-          },
+          { id: item, selected: 1 },
           {
             headers: {
-              Authorization: "Bearer " + token,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
         );
       }
-    });
+    }
   };
+
   return (
     <>
       <AppBar position="sticky">
@@ -132,9 +120,7 @@ const Homepage = () => {
                 color: "white",
                 textDecoration: "none",
                 fontWeight: "bold",
-                ":hover": {
-                  color: "lightgray",
-                },
+                ":hover": { color: "lightgray" },
               }}
               href="/logout"
             >
@@ -143,6 +129,7 @@ const Homepage = () => {
           </Box>
         </Toolbar>
       </AppBar>
+
       <Box sx={{ width: "100%" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <DataGrid
@@ -155,16 +142,12 @@ const Homepage = () => {
                     : [],
                 },
               },
-              pagination: {
-                paginationModel: { pageSize: 10 },
-              },
+              pagination: { paginationModel: { pageSize: 10 } },
             }}
             filterMode="server"
             onFilterModelChange={onFilterChange}
             onSortModelChange={handleSortModelChange}
-            slots={{
-              toolbar: GridToolbarQuickFilter,
-            }}
+            slots={{ toolbar: GridToolbarQuickFilter }}
             onRowSelectionModelChange={rowSelected}
             disableColumnFilter
             disableColumnSelector
