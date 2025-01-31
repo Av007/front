@@ -10,6 +10,7 @@ RUN npm install
 
 COPY . /app
 
+ARG STAGE
 ENV VITE_ENV=${STAGE}
 
 
