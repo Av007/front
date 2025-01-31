@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import * as React from "react";
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import _ from "lodash";
 import { DataGrid } from "@mui/x-data-grid";
 import { AppBar, Toolbar, Box, Link, Chip } from "@mui/material";
 import { useAuth } from "../provider/AuthProvider";
 import { GridToolbarQuickFilter } from "@mui/x-data-grid/components";
-import axios from "axios";
 
 const Homepage = () => {
   const { token } = useAuth();
@@ -19,66 +19,68 @@ const Homepage = () => {
     { field: "stock", headerName: "stock" },
   ];
 
-  const [selected, setSelected] = React.useState([]);
-  const [query, setQuery] = React.useState(localStorage.getItem('query') || '');
-  const [order, setOrder] = React.useState('');
-  const [filterModel, setFilterModel] = React.useState({
+  const [selected, setSelected] = useState([]);
+  const [query, setQuery] = useState(localStorage.getItem("query") || "");
+  const [order, setOrder] = useState("");
+  const [filterModel, setFilterModel] = useState({
     items: [],
     quickFilterValues: [],
   });
 
   useEffect(() => {
-    call()
-  }, [query, order]); 
+    call();
+  }, [query, order]);
 
   useEffect(() => {
     if (query) {
-      localStorage.setItem('query', query);
+      localStorage.setItem("query", query);
     }
   }, [query]);
 
   const call = () => {
-    axios
-      .get(
-        `${import.meta.env.VITE_URL}api/products`,
-        {
-          params: {
-            search: query,
-            ordering: order,
-          },
-          paramsSerializer: (params) => {
-            let result = '';
-            Object.keys(params).forEach(key => {
+    _.debounce(async () => {
+      axios
+        .get(
+          `${import.meta.env.VITE_URL}api/products`,
+          {
+            params: {
+              search: query,
+              ordering: order,
+            },
+            paramsSerializer: (params) => {
+              let result = "";
+              Object.keys(params).forEach((key) => {
                 result += `${key}=${encodeURIComponent(params[key])}&`;
-            });
-            return result.substring(0, result.length - 1);
-        }
-        },
-        {
-          headers: {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json",
+              });
+              return result.substring(0, result.length - 1);
+            },
           },
-        }
-      )
-      .then((success) => {
-        const items =
-          success?.data?.reduce((acc, curr) => acc.concat(curr), []) || [];
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+            },
+          }
+        )
+        .then((success) => {
+          const items =
+            success?.data?.reduce((acc, curr) => acc.concat(curr), []) || [];
 
-        setFilterModel({
-          ...filterModel,
-          items,
+          setFilterModel({
+            ...filterModel,
+            items,
+          });
+          setData(items);
         });
-        setData(items);
-      });
+    }, 700);
   };
 
-  const onFilterChange = React.useCallback((filterModel) => {
-    const q = filterModel.quickFilterValues.join(' ');
+  const onFilterChange = useCallback((filterModel) => {
+    const q = filterModel.quickFilterValues.join(" ");
     setQuery(q);
   }, []);
 
-  const handleSortModelChange = React.useCallback((sortModel) => {
+  const handleSortModelChange = useCallback((sortModel) => {
     const field = sortModel[0]["field"];
     const sort = sortModel[0]["sort"];
     const sign = {
@@ -148,7 +150,9 @@ const Homepage = () => {
               filter: {
                 filterModel: {
                   items: [],
-                  quickFilterValues: localStorage.getItem('query') ? [localStorage.getItem('query')] : [],
+                  quickFilterValues: localStorage.getItem("query")
+                    ? [localStorage.getItem("query")]
+                    : [],
                 },
               },
               pagination: {
