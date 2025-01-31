@@ -5,6 +5,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { AppBar, Toolbar, Box, Link, Chip } from "@mui/material";
 import { useAuth } from "../provider/AuthProvider";
 import { GridToolbarQuickFilter } from "@mui/x-data-grid/components";
+import { getEnvsUrl } from "../helpers/envs";
 
 const Homepage = () => {
   const { token } = useAuth();
@@ -30,7 +31,7 @@ const Homepage = () => {
     _.debounce((searchQuery, sortOrder) => {
       console.log("Fetching API:", searchQuery, sortOrder);
       axios
-        .get(`${import.meta.env.VITE_URL}api/products`, {
+        .get(`${getEnvsUrl()}api/products`, {
           params: { search: searchQuery, ordering: sortOrder },
           paramsSerializer: (params) =>
             Object.keys(params)
@@ -44,7 +45,7 @@ const Homepage = () => {
         .then((response) => {
           const items =
             response?.data?.reduce((acc, curr) => acc.concat(curr), []) || [];
-          
+
           setFilterModel((prev) => ({ ...prev, items }));
           setData(items);
         })

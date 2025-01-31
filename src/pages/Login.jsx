@@ -3,6 +3,7 @@ import axios from "axios";
 import { TextField, Button, Box, Typography, Container } from "@mui/material";
 import { useAuth } from "../provider/AuthProvider";
 import { useNavigate } from "react-router-dom";
+import { getEnvsUrl } from "../helpers/envs";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,17 +15,17 @@ const Login = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      const { data } = await axios.post(`${import.meta.env.VITE_URL}api/token/`, {
+      const { data } = await axios.post(`${getEnvsUrl()}api/token/`, {
         username: email,
         password,
       });
       const token = data.access;
-      
+
       localStorage.setItem("token", token);
       localStorage.setItem("email", data.email);
       setToken(token);
       navigate("/", { replace: true });
-    // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
     } catch (error) {
       setError("Invalid credentials. Please try again.");
     }
