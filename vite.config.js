@@ -6,7 +6,9 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the
   // `VITE_` prefix.
   // eslint-disable-next-line no-undef
-  const env = loadEnv(mode, process.cwd(), '')
+  const env = loadEnv(mode, process.cwd(), '');
+  // eslint-disable-next-line no-undef
+  process.env = {...process.env, ...loadEnv(mode, process.cwd())};
   return {
     plugins: [react()],
     define: {
