@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import _ from "lodash";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, useGridApiRef } from "@mui/x-data-grid";
 import { AppBar, Toolbar, Box, Link, Chip } from "@mui/material";
 import { useAuth } from "../provider/AuthProvider";
 import { GridToolbarQuickFilter } from "@mui/x-data-grid/components";
@@ -18,6 +18,7 @@ const Homepage = () => {
     items: [],
     quickFilterValues: [],
   });
+  const apiRef = useGridApiRef();
 
   const columns = [
     { field: "id", headerName: "ID" },
@@ -68,8 +69,12 @@ const Homepage = () => {
 
   const onFilterChange = useCallback((filterModelValue) => {
     const q = filterModelValue.quickFilterValues.join(" ");
-    setQuery(q);
-  }, []);
+    if (filterModelValue.quickFilterValues.length > 0) {
+      setQuery(q);
+    } else {
+      localStorage.removeItem("query");
+    }
+  }, [apiRef]);
 
   const handleSortModelChange = useCallback((sortModel) => {
     if (sortModel.length > 0) {
